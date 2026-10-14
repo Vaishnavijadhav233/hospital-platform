@@ -59,12 +59,12 @@ pipeline {
         stage('Image Security Scan (Trivy)') {
             steps {
                 bat '''
-                    where trivy >nul 2>&1
-                    if %ERRORLEVEL% EQU 0 (
-                        trivy image --severity HIGH,CRITICAL --exit-code 0 %IMAGE_NAME%:%IMAGE_TAG%
-                    ) else (
-                        echo Trivy not installed - skipping scan
-                    )
+                    docker run --rm ^
+                      -v /var/run/docker.sock:/var/run/docker.sock ^
+                      aquasec/trivy:latest image ^
+                      --severity HIGH,CRITICAL ^
+                      --exit-code 0 ^
+                      %IMAGE_NAME%:%IMAGE_TAG%
                 '''
             }
         }
