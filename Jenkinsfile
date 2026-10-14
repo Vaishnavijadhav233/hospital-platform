@@ -20,11 +20,11 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
+                bat '''
+                    python --version
+                    python -m venv venv
+                    venv\\Scripts\\python -m pip install --upgrade pip
+                    venv\\Scripts\\python -m pip install -r requirements.txt
                 '''
             }
         }
@@ -33,15 +33,14 @@ pipeline {
             parallel {
                 stage('Lint (Flake8)') {
                     steps {
-                        sh '. venv/bin/activate && flake8 app/ --max-line-length=120 --count --statistics'
+                        bat 'venv\\Scripts\\python -m flake8 app/ --max-line-length=120 --count --statistics'
                     }
                 }
                 stage('Unit & API Tests') {
                     steps {
-                        sh '''
-                            . venv/bin/activate
-                            mkdir -p reports
-                            pytest -v --cov=app --cov-fail-under=80 --junitxml=reports/test-results.xml
+                        bat '''
+                            if not exist reports mkdir reports
+                            venv\\Scripts\\python -m pytest -v --cov=app --cov-fail-under=80 --junitxml=reports/test-results.xml
                         '''
                     }
                 }
@@ -50,37 +49,37 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh '''
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                    docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                bat '''
+                    docker build -t %IMAGE_NAME%:%IMAGE_TAG% .
+                    docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest
                 '''
             }
         }
 
         stage('Image Security Scan (Trivy)') {
             steps {
-                sh '''
-                    if command -v trivy >/dev/null 2>&1; then
-                        trivy image --severity HIGH,CRITICAL --exit-code 0 ${IMAGE_NAME}:${IMAGE_TAG}
-                    else
-                        echo "Trivy not installed - skipping scan"
-                    fi
+                bat '''
+                    where trivy >nul 2>&1
+                    if %ERRORLEVEL% EQU 0 (
+                        trivy image --severity HIGH,CRITICAL --exit-code 0 %IMAGE_NAME%:%IMAGE_TAG%
+                    ) else (
+                        echo Trivy not installed - skipping scan
+                    )
                 '''
             }
         }
 
         stage('Deploy to Minikube') {
             steps {
-                sh '''
-                    minikube image load ${IMAGE_NAME}:${IMAGE_TAG}
+                bat '''
+                    minikube image load %IMAGE_NAME%:%IMAGE_TAG%
                     kubectl apply -f k8s/
-                    kubectl set image deployment/hospital-api api=${IMAGE_NAME}:${IMAGE_TAG}
+                    kubectl set image deployment/hospital-api api=%IMAGE_NAME%:%IMAGE_TAG%
                     kubectl rollout status deployment/hospital-api --timeout=120s
                 '''
             }
         }
     }
-
     post {
         always {
             junit allowEmptyResults: true, testResults: 'reports/test-results.xml'
