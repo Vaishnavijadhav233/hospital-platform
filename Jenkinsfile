@@ -61,13 +61,17 @@ pipeline {
         stage('Image Security Scan (Trivy)') {
             steps {
                 bat '''
+                    docker save %IMAGE_NAME%:%IMAGE_TAG% -o hospital-image.tar
+                    if errorlevel 1 exit /b 1
+
                     docker run --rm ^
-                      -v /var/run/docker.sock:/var/run/docker.sock ^
+                      -v "%CD%\\hospital-image.tar:/tmp/hospital-image.tar:ro" ^
                       aquasec/trivy:latest image ^
+                      --input /tmp/hospital-image.tar ^
                       --db-repository ghcr.io/aquasecurity/trivy-db:2 ^
                       --severity HIGH,CRITICAL ^
-                      --exit-code 0 ^
-                      %IMAGE_NAME%:%IMAGE_TAG%
+                      --exit-code 0
+                    if errorlevel 1 exit /b 1
                 '''
             }
         }
