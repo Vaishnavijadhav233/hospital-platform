@@ -79,16 +79,21 @@ pipeline {
         stage('Deploy to Minikube') {
             steps {
                 bat '''
-                    echo Checking Minikube profile...
-                    minikube --profile=minikube status
+                    set "PATH=C:\\Program Files\\Kubernetes\\Minikube;%PATH%"
+                    set "PATH=C:\\Users\\SAINATH\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin;%PATH%"
+                    set "KUBECONFIG=C:\\Users\\SAINATH\\.kube\\config"
+                    set "MINIKUBE_HOME=C:\\Users\\SAINATH\\.minikube"
+
+                    echo Checking Minikube...
+                    "C:\\Program Files\\Kubernetes\\Minikube\\minikube.exe" --profile=minikube status
                     if errorlevel 1 exit /b 1
 
                     echo Checking Kubernetes connection...
                     kubectl get nodes
                     if errorlevel 1 exit /b 1
 
-                    echo Loading Docker image...
-                    minikube --profile=minikube image load %IMAGE_NAME%:%IMAGE_TAG%
+                    echo Loading application image...
+                    minikube image load %IMAGE_NAME%:%IMAGE_TAG%
                     if errorlevel 1 exit /b 1
 
                     echo Applying Kubernetes manifests...
