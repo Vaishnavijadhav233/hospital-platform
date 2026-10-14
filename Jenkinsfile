@@ -4,6 +4,8 @@ pipeline {
     environment {
         IMAGE_NAME = 'hospital-platform'
         IMAGE_TAG  = "v1.${BUILD_NUMBER}"
+        KUBECONFIG    = 'C:\\Users\\SAINATH\\.kube\\config'
+        MINIKUBE_HOME = 'C:\\Users\\SAINATH'
     }
 
     options {
@@ -72,10 +74,34 @@ pipeline {
         stage('Deploy to Minikube') {
             steps {
                 bat '''
-                    minikube image load %IMAGE_NAME%:%IMAGE_TAG%
+                    echo Checking Minikube profile...
+                    minikube --profile=minikube status
+                    if errorlevel 1 exit /b 1
+
+                    echo Checking Kubernetes connection...
+                    kubectl get nodes
+                    if errorlevel 1 exit /b 1
+
+                    echo Loading Docker image...
+                    minikube --profile=minikube image load %IMAGE_NAME%:%IMAGE_TAG%
+                    if errorlevel 1 exit /b 1
+
+                    echo Applying Kubernetes manifests...
                     kubectl apply -f k8s/
+                    if errorlevel 1 exit /b 1
+
+                    echo Updating application image...
                     kubectl set image deployment/hospital-api api=%IMAGE_NAME%:%IMAGE_TAG%
-                    kubectl rollout status deployment/hospital-api --timeout=120s
+                    if errorlevel 1 exit /b 1
+
+                    echo Waiting for deployment rollout...
+                    kubectl rollout status deployment/hospital-api --timeout=180s
+                    if errorlevel 1 exit /b 1
+
+                    echo Checking deployed resources...
+                    kubectl get deployments
+                    kubectl get pods
+                    kubectl get services
                 '''
             }
         }
