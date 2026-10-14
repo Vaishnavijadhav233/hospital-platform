@@ -5,7 +5,7 @@ pipeline {
         IMAGE_NAME = 'hospital-platform'
         IMAGE_TAG  = "v1.${BUILD_NUMBER}"
         KUBECONFIG    = 'C:\\Users\\SAINATH\\.kube\\config'
-        MINIKUBE_HOME = 'C:\\Users\\SAINATH'
+        MINIKUBE_HOME = 'C:\\Users\\SAINATH\\.minikube'
     }
 
     options {
