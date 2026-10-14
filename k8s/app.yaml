@@ -25,7 +25,7 @@ spec:
           command: ["sh", "-c", "until nc -z postgres 5432; do echo waiting for db; sleep 2; done"]
       containers:
         - name: api
-          image: hospital-platform:v1.0.0
+          image: hospital-platform:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
